@@ -435,6 +435,11 @@ pub enum InputContentBlock {
         /// The text content.
         text: String,
     },
+    /// An image block (base64-encoded).
+    Image {
+        /// The image source.
+        source: ImageSource,
+    },
     /// A tool result block.
     ToolResult {
         /// The tool_use ID this result corresponds to.
@@ -448,6 +453,18 @@ pub enum InputContentBlock {
     },
 }
 
+/// Source data for an image content block.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImageSource {
+    /// Always `"base64"`.
+    #[serde(rename = "type")]
+    pub source_type: String,
+    /// MIME type (e.g. `"image/png"`, `"image/jpeg"`).
+    pub media_type: String,
+    /// Base64-encoded image data.
+    pub data: String,
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -459,6 +476,35 @@ impl InputMessage {
             message: InputMessageContent {
                 role: "user".to_owned(),
                 content: InputContent::Text(text.into()),
+            },
+        }
+    }
+
+    /// Create a user message with text and images.
+    ///
+    /// Images should be provided as `(media_type, base64_data)` tuples.
+    pub fn user_with_images(
+        text: impl Into<String>,
+        images: Vec<(String, String)>,
+    ) -> Self {
+        let mut blocks: Vec<InputContentBlock> = images
+            .into_iter()
+            .map(|(media_type, data)| InputContentBlock::Image {
+                source: ImageSource {
+                    source_type: "base64".to_owned(),
+                    media_type,
+                    data,
+                },
+            })
+            .collect();
+        let text = text.into();
+        if !text.is_empty() {
+            blocks.push(InputContentBlock::Text { text });
+        }
+        InputMessage::User {
+            message: InputMessageContent {
+                role: "user".to_owned(),
+                content: InputContent::Blocks(blocks),
             },
         }
     }

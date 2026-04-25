@@ -116,6 +116,21 @@ impl Session {
         self.transport.send(&msg).await
     }
 
+    /// Send a message with text and images.
+    ///
+    /// Images are `(media_type, base64_data)` tuples.
+    pub async fn send_message_with_images(
+        &mut self,
+        text: &str,
+        images: Vec<(String, String)>,
+    ) -> Result<()> {
+        if self.finished {
+            return Err(SdkError::NotConnected);
+        }
+        let msg = InputMessage::user_with_images(text, images);
+        self.transport.send(&msg).await
+    }
+
     /// Send a tool result back to the model.
     ///
     /// After receiving a tool-use request via [`next_event`](Self::next_event),
